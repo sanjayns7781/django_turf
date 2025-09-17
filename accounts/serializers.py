@@ -1,3 +1,4 @@
+"""""Serializer to handle the operations and all """
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
 from .models import Role,User
