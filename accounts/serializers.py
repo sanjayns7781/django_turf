@@ -84,3 +84,10 @@ class LoginSerializer(serializers.Serializer):
             "access_token":str(refresh.access_token),
             "refresh_token":str(refresh),
         }
+
+
+class UpdateProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = fields = ['id', 'username', 'email', 'phone_number', 'role']
+        read_only_fields = ['id', 'email', 'role']  # cannot be changed by user

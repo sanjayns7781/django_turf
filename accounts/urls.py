@@ -3,5 +3,6 @@ from .views import register,login
 
 urlpatterns = [
     path('register/',register),
-    path('login/',login)
+    path('login/',login),
+    path('profile/')
 ]
