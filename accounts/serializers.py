@@ -1,6 +1,7 @@
 """""Serializer to handle the operations and all """
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken # type: ignore
+from django.contrib.auth.hashers import check_password
 from .models import Role,User
 
 
@@ -53,3 +54,33 @@ class RegisterSerializer(serializers.ModelSerializer):
         }
         return data
 
+
+class LoginSerializer(serializers.Serializer):
+    password = serializers.CharField(write_only=True)
+    email = serializers.EmailField()
+
+    def validate(self, data):
+        email = data.get('email')
+        password = data.get('password')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Invalid credential as user does not exists")
+        
+        if not check_password(password,user.password):
+            raise serializers.ValidationError("invalid credentials password mismatch")
+        
+        refresh = RefreshToken.for_user(user)
+
+        return{
+            "id":user.id,
+            "username":user.username,
+            "email":user.email,
+            "phone number":user.phone_number,
+            "role":{
+                "id": user.role.id,
+                "name": user.role.name,
+            },
+            "access_token":str(refresh.access_token),
+            "refresh_token":str(refresh),
+        }
