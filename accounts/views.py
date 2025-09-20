@@ -115,6 +115,10 @@ def get_or_create_roles(request):
         return Response(serializer.data,status=200)
     
     if request.method == "POST":
+        name = request.data.get('name').upper()
+        if Role.objects.filter(name=name).exists():
+            return Response({"error": f"Role '{name}' already exists."}, status=400)
+        
         serializer = RoleSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
