@@ -1,10 +1,10 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import LoginSerializer, RegisterSerializer , UpdateProfileSerializer , UserManagementSerializer
+from .serializers import LoginSerializer, RegisterSerializer , UpdateProfileSerializer , UserManagementSerializer, RoleSerializer
 from .permissions import IsAdminOrOwner,IsAdmin
 from rest_framework.permissions import IsAuthenticated
-from .models import User
+from .models import User, Role
 from .pagination import UserPagination
 from django.db.models import Q
 
@@ -105,5 +105,18 @@ def disable_user(request,user_id):
     return Response(serializer.data,status=200)
 
     
-        
-
+# Task 6: Role Management (Admin Only)
+@api_view(['GET','POST'])
+@permission_classes([IsAuthenticated,IsAdmin])
+def get_or_create_roles(request):
+    if request.method == "GET":
+        roles = Role.objects.all()
+        serializer = RoleSerializer(roles,many=True)
+        return Response(serializer.data,status=200)
+    
+    if request.method == "POST":
+        serializer = RoleSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=201)
+        return Response(serializer.errors,status=400)
