@@ -89,5 +89,24 @@ class LoginSerializer(serializers.Serializer):
 class UpdateProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = fields = ['id', 'username', 'email', 'phone_number', 'role']
+        fields = ['id', 'username', 'email', 'phone_number', 'role']
         read_only_fields = ['id', 'email', 'role']  # cannot be changed by user
+
+
+class UserManagementSerializer(serializers.ModelSerializer):
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all())
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'phone_number', 'role','is_active']
+        read_only_fields = ['id', 'email']
+
+    
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        role = validated_data.get('role', instance.role)
+
+        if role.name in ["ADMIN","OWNER"]:
+            if request.user.role.name != "ADMIN":
+                raise serializers.ValidationError("Only ADMIN can assign ADMIN/OWNER roles.")
+            
+        return super().update(instance, validated_data)
