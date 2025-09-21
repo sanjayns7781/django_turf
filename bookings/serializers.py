@@ -32,3 +32,16 @@ class BookingSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("This turf is already booked for the given time slot.")
 
         return super().create(validated_data)
+    
+class UpdateBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TurfBooking
+        fields = ['turf_name', 'location', 'booking_date', 'time_slot']
+
+    def update(self, instance, validated_data):
+        request = self.context.get('request')
+        user = request.user
+
+        if user.role.name == "CUSTOMER" and instance.user != user:
+            raise serializers.ValidationError("Customers can not edit the booking")
+        return super().update(instance, validated_data)

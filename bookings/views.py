@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import BookingSerializer
+from .serializers import BookingSerializer,UpdateBookingSerializer
 from .models import TurfBooking
 from .pagination import BookingPagination
 from django.db.models import Q
@@ -71,4 +71,42 @@ def book_turf(request):
         result_page = paginator.paginate_queryset(bookings,request)
         serializer = BookingSerializer(result_page,many=True)
         return paginator.get_paginated_response(serializer.data)
+    
+@api_view(["PUT","GET","DELETE"])
+@permission_classes([IsAuthenticated])
+def booking_actions(request,booking_id):
+    if request.method == "GET":
+        try:
+            booking = TurfBooking.objects.get(id=booking_id)
+        except TurfBooking.DoesNotExist:
+            return Response("No booking found under this id",status=404)
+        
+        serializer = BookingSerializer(booking)
+        return Response(serializer.data,status=200)
+    
+    elif request.method == "PUT":
+        try:
+            booking = TurfBooking.objects.get(id=booking_id)
+        except TurfBooking.DoesNotExist:
+            return Response("No booking found under this id",status=404)
+        
+        serializer = UpdateBookingSerializer(booking,request.data, partial=True,context={"request":request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data,status=200)
+        return Response(serializer.errors,status=400)
 
+        pass
+    elif request.method == "DELETE":
+        try:
+            booking = TurfBooking.objects.get(id=booking_id)
+        except TurfBooking.DoesNotExist:
+            return Response("No booking found under this id",status=404)
+        
+        role = request.user.role.name
+        if role in ["ADMIN","OWNER"] or (role == "CUSTOMER" and booking.user == request.user):
+            booking.delete()
+            return Response("Has successfully deleted",status=204)
+        return Response("Only admins and owner can delete booking")
+
+        
