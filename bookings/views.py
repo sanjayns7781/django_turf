@@ -6,6 +6,7 @@ from .serializers import BookingSerializer,UpdateBookingSerializer
 from .models import TurfBooking
 from .pagination import BookingPagination
 from django.db.models import Q
+from datetime import datetime
 
 
 # Task 7: Turf Booking CRUD Operations
@@ -110,3 +111,73 @@ def booking_actions(request,booking_id):
         return Response("Only admins and owner can delete booking")
 
         
+# Task 8: Advanced Booking Queries 
+# GET /api/bookings/by-date/{date}/
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_booking_by_date(request,date):
+    # Validate and parse date
+    try:
+        parsed_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=400)
+
+    bookings = TurfBooking.objects.filter(booking_date=parsed_date)
+    if not bookings.exists():
+        return Response({"message": "No bookings found on this date."}, status=404)
+    
+    serializer = BookingSerializer(bookings,many=True)
+    return Response(serializer.data,status=200)
+
+# GET /api/bookings/available-slots/
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_available_slots(request):
+    date = request.query_params.get("date")
+    location = request.query_params.get("location")
+
+    if not date:
+        return Response({"error": "date is required"}, status=400)
+    
+    # 1. All possible slots (from model choices)
+    # all_slots = [slot[0] for slot in TurfBooking._meta.get_field('time_slot').choices]
+    all_slots = [slot[0] for slot in TurfBooking.TIME_SLOTS]
+
+    # 2. Filter bookings for that date (and location if provided)
+    filters = {"booking_date": date}
+    if location:
+        filters["location__icontains"] = location
+
+    bookings = TurfBooking.objects.filter(**filters)
+
+    # 3. Extract booked slots
+    booked_slots = [
+        {"time_slot": b.time_slot, "turf_name": b.turf_name}
+        for b in bookings
+    ]
+
+    booked_slot_times = [b.time_slot for b in bookings]
+
+    # 4. Available = All - Booked
+    available_slots = [slot for slot in all_slots if slot not in booked_slot_times]
+
+    return Response(
+        {
+            "date":date,
+            "available_slots":available_slots,
+            "booked_slots":booked_slots
+            
+        },
+        status=200
+    )
+
+
+# GET /api/bookings/by-location/{location}/
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_booking_locations(request,location):
+    bookings = TurfBooking.objects.filter(location__icontains = location)
+    serializer = BookingSerializer(bookings,many=True)
+    return Response(serializer.data,status=200)
+

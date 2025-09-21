@@ -34,6 +34,8 @@ class BookingSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
     
 class UpdateBookingSerializer(serializers.ModelSerializer):
+    # time_slot = serializers.ChoiceField(choices=TurfBooking.TIME_SLOTS)
+
     class Meta:
         model = TurfBooking
         fields = ['turf_name', 'location', 'booking_date', 'time_slot']
