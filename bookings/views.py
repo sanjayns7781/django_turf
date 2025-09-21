@@ -275,3 +275,53 @@ def cancel_booking(request):
     deleted_count, _ = bookings_to_delete.delete()
     return Response({"message": f"{deleted_count} booking(s) have been deleted successfully"}, status=200)
 
+
+# Task 11: Advanced Filtering & Search
+# GET /api/bookings/advanced-search/
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def advanced_search(request):
+    bookings = TurfBooking.objects.all()
+    q = request.query_params.get("q")
+    if q:
+        bookings = bookings.filter(
+            Q(booking_code__icontains=q) |
+            Q(turf_name__icontains=q) |
+            Q(location__icontains=q)
+        )
+    locations = request.query_params.get("locations")
+    if locations:
+        location_list = [loc.strip() for loc in locations.split(",")]
+        bookings = bookings.filter(location__in=location_list)
+
+    time_slots = request.query_params.get("time_slots")
+    if time_slots:
+        slot_list = [slot.strip() for slot in time_slots.split(",")]
+        bookings = bookings.filter(time_slot__in=slot_list)
+
+    turf_names = request.query_params.get("turf_names")
+    if turf_names:
+        turf_name_list = [name.strip() for name in turf_names.split(",")]
+        bookings = bookings.filter(turf_name__in=turf_name_list)
+
+    date_from = request.query_params.get("date_from")
+    date_before = request.query_params.get("date_before")
+    if date_from and date_before:
+        bookings = bookings.filter(booking_date__range=[date_from, date_before])
+    elif date_from:
+        bookings = bookings.filter(booking_date__gte=date_from)
+    elif date_before:
+        bookings = bookings.filter(booking_date__lte=date_before)
+
+    sort_by = request.query_params.get("sort_by", "booking_date")  # default field
+    sort_order = request.query_params.get("sort_order", "asc")
+
+    if sort_order == "desc":
+        sort_by = f"-{sort_by}"
+
+    bookings = bookings.order_by(sort_by)
+    
+    paginator = BookingPagination()
+    result_page = paginator.paginate_queryset(bookings, request)
+    serializer = BookingSerializer(result_page, many=True)
+    return paginator.get_paginated_response(serializer.data)
