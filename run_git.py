@@ -14,4 +14,6 @@ def run_git(files, message, branch="main"):
     print("---------succesfully pushed------")
 
 # Example usage
-run_git(".", "implemented booking statistics", "main")
+run_git(".", "Task 10 Bulk operation has been implemented", "main")
+
+

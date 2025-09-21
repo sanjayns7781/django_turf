@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import BookingSerializer,UpdateBookingSerializer
+from .serializers import BookingSerializer,UpdateBookingSerializer, BulkBookingItemSerializer
 from .models import TurfBooking
 from .pagination import BookingPagination
 from .permissions import IsAdmin,IsAdminOrOwner
@@ -244,3 +244,34 @@ def booking_stats(request):
         "popular_turfs": list(popular_turfs),
         "bookings_by_month": bookings_by_month
     }, status=200)
+
+
+# Task 10: Bulk Operations
+# POST /api/bookings/bulk-create/
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def bulk_booking(request):
+    serializer = BulkBookingItemSerializer(request.data,many=True,context={'request':request})
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data,status=200)
+    return Response(serializer.errors,status=400)
+
+# PUT /api/bookings/bulk-cancel/
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated,IsAdminOrOwner])
+def cancel_booking(request):
+    booking_codes = request.data.get('booking_codes',[])
+
+    if not booking_codes:
+        return Response({"error": "No booking codes provided"}, status=400)
+    
+    # Filter bookings that exist
+    bookings_to_delete = TurfBooking.objects.filter(booking_code__in=booking_codes)
+    if not bookings_to_delete.exists():
+        return Response({"error": "No bookings found for the given codes"}, status=404)
+    
+    deleted_count, _ = bookings_to_delete.delete()
+    return Response({"message": f"{deleted_count} booking(s) have been deleted successfully"}, status=200)
+

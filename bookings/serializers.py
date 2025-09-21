@@ -47,3 +47,40 @@ class UpdateBookingSerializer(serializers.ModelSerializer):
         if user.role.name == "CUSTOMER" and instance.user != user:
             raise serializers.ValidationError("Customers can not edit the booking")
         return super().update(instance, validated_data)
+# This class overide the default ListSserializer
+class BulkBookingSerializer(serializers.ListSerializer):
+    def create(self, validated_data):
+        booking = []
+        request = self.context.get('request')
+        user = request.user
+
+        for bookings in validated_data:
+            booking_code = bookings.get('booking_code')
+            if booking_code:
+                if TurfBooking.objects.filter(booking_code=booking_code).exists():
+                    raise serializers.ValidationError({"booking_code": "This booking code already exists."})
+            else:
+                while True:
+                    booking_code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+                    if not TurfBooking.objects.filter(booking_code=booking_code).exists():
+                        break
+                    bookings["booking_code"] = booking_code
+            bookings['user'] = user
+
+            if TurfBooking.objects.filter(
+            turf_name=bookings['turf_name'],
+            booking_date=bookings['booking_date'],
+            time_slot=bookings['time_slot']
+            ).exists():
+                raise serializers.ValidationError("This turf is already booked for the given time slot.")
+            
+            # collecting the objects to memmory so that we need to hit DB only once
+            booking.append(TurfBooking(**bookings))
+
+        return TurfBooking.objects.bulk_create(booking)
+    
+class BulkBookingItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TurfBooking
+        fields = ['turf_name', 'location', 'booking_date', 'time_slot', 'booking_code']
+        list_serializer_class = BulkBookingSerializer
