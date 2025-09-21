@@ -14,4 +14,4 @@ def run_git(files, message, branch="main"):
     print("---------succesfully pushed------")
 
 # Example usage
-run_git(".", "implmented advanced booking queries like get by date,location", "main")
+run_git(".", "implemented booking statistics", "main")

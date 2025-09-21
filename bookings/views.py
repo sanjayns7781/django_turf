@@ -5,8 +5,11 @@ from rest_framework.permissions import IsAuthenticated
 from .serializers import BookingSerializer,UpdateBookingSerializer
 from .models import TurfBooking
 from .pagination import BookingPagination
-from django.db.models import Q
+from .permissions import IsAdmin,IsAdminOrOwner
+from django.db.models import Q,Count
+from django.db.models.functions import TruncMonth
 from datetime import datetime
+from django.utils.timezone import now
 
 
 # Task 7: Turf Booking CRUD Operations
@@ -181,3 +184,63 @@ def get_booking_locations(request,location):
     serializer = BookingSerializer(bookings,many=True)
     return Response(serializer.data,status=200)
 
+
+# Task 9: Booking Statistics (Admin/Owner Only)
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsAdminOrOwner])
+def booking_stats(request):
+    bookings = TurfBooking.objects.all()
+
+    # get the total number of booking
+    total_bookings = TurfBooking.objects.count()
+
+    # 2. Bookings this month
+    today = now().date()
+    bookings_this_month = TurfBooking.objects.filter(
+    booking_date__year=today.year,
+    booking_date__month=today.month
+    ).count()
+
+    # 3. Popular time slots
+    popular_time_slots = (
+        TurfBooking.objects.values("time_slot")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:3]
+    )
+
+    # 4. Popular locations
+    popular_locations = (
+        TurfBooking.objects.values("location")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:3]
+    )
+
+    # 5. Popular turfs
+    popular_turfs = (
+        TurfBooking.objects.values("turf_name")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:3]
+    )
+
+    # 6. Bookings by month
+    bookings_by_month = (
+        TurfBooking.objects
+        .annotate(month=TruncMonth("booking_date"))
+        .values("month")
+        .annotate(count=Count("id"))
+        .order_by("month")
+    )
+    
+    bookings_by_month = [
+        {"month": b["month"].strftime("%B %Y"), "count": b["count"]}
+        for b in bookings_by_month
+    ]
+
+    return Response({
+        "total_bookings": total_bookings,
+        "bookings_this_month": bookings_this_month,
+        "popular_time_slots": list(popular_time_slots),
+        "popular_locations": list(popular_locations),
+        "popular_turfs": list(popular_turfs),
+        "bookings_by_month": bookings_by_month
+    }, status=200)
