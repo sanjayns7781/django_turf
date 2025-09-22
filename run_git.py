@@ -14,6 +14,6 @@ def run_git(files, message, branch="main"):
     print("---------succesfully pushed------")
 
 # Example usage
-run_git(".", "Task 11 Advanced filtering has been implemented", "main")
+run_git(".", "completed all the tasks need make the things more good", "main")
 
 

@@ -84,3 +84,15 @@ class BulkBookingItemSerializer(serializers.ModelSerializer):
         model = TurfBooking
         fields = ['turf_name', 'location', 'booking_date', 'time_slot', 'booking_code']
         list_serializer_class = BulkBookingSerializer
+
+
+class VerifyBookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TurfBooking
+        fields = ["booking_code","turf_name","location","booking_date","time_slot","customer_name","status"]
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["customer_name"] = instance.user.name
+        data["status"] = "confirmed"
+        return data

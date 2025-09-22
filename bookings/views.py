@@ -2,7 +2,10 @@ from django.shortcuts import render
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
-from .serializers import BookingSerializer,UpdateBookingSerializer, BulkBookingItemSerializer
+from .serializers import( 
+    BookingSerializer,UpdateBookingSerializer,
+    BulkBookingItemSerializer,VerifyBookingSerializer
+    )
 from .models import TurfBooking
 from .pagination import BookingPagination
 from .permissions import IsAdmin,IsAdminOrOwner
@@ -186,6 +189,7 @@ def get_booking_locations(request,location):
 
 
 # Task 9: Booking Statistics (Admin/Owner Only)
+# GET /api/bookings/stats/
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,IsAdminOrOwner])
 def booking_stats(request):
@@ -325,3 +329,36 @@ def advanced_search(request):
     result_page = paginator.paginate_queryset(bookings, request)
     serializer = BookingSerializer(result_page, many=True)
     return paginator.get_paginated_response(serializer.data)
+
+# Booking Verification & Management
+# GET /api/bookings/verify/{booking_code}/
+@api_view(['GET'])
+def verify_booking(request,booking_code):
+    try:
+        booking = TurfBooking.objects.get(booking_code=booking_code)
+    except TurfBooking.DoesNotExist:
+        return Response({"error": "There is no booking with this booking code"}, status=404)
+    
+    serializer = VerifyBookingSerializer(booking)
+    return Response(serializer.data,status=200)
+
+# POST /api/bookings/{id}/confirm/
+@api_view(['GET'])
+@permission_classes([IsAuthenticated,IsAdminOrOwner])
+def confirm_booking(request,user_id):
+    try:
+        booking = TurfBooking.objects.get(id=id)
+    except TurfBooking.DoesNotExist:
+        return Response({"error": "Booking not found"}, status=404)
+    
+    serializer = BookingSerializer(booking)
+    booking_data = serializer.data
+
+    # Add confirmation details only in the response (not DB)
+    booking_data["status"] = "confirmed"
+    booking_data["notes"] = "Booking confirmed. Please arrive 15 minutes early."
+
+    return Response(booking_data, status=200)
+
+
+

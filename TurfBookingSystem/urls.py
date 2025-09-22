@@ -22,6 +22,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView,TokenRefreshView 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/user/',include('accounts.urls')),
+    path('api/bookings/',include('bookings.urls')),
     # Add other URL patterns here
 ]
 
