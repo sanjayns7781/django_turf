@@ -7,6 +7,9 @@ from rest_framework.permissions import IsAuthenticated
 from .models import User, Role
 from .pagination import UserPagination
 from django.db.models import Q
+import logging
+
+logger = logging.getLogger('accounts')
 
 @api_view(['POST'])
 @permission_classes([])  # allow anyone
@@ -22,7 +25,9 @@ def register(request):
 def login(request):
     serializer = LoginSerializer(data=request.data)
     if serializer.is_valid():
+        logger.info(f"User {serializer.validated_data['username']} logged in successfully")
         return Response(serializer.validated_data,status=200)
+    logger.warning(f"Failed login attempt: {request.data}")
     return Response(serializer.errors,status=400)
 
 @api_view(['PUT','GET'])
@@ -61,9 +66,9 @@ def list_users(request):
     search = request.query_params.get('search')
     if search:
         users = users.filter(
-            Q(username_icontains=search)|
-            Q(email_icontains=search)|
-            Q(phone_number_icontains=search)
+            Q(username__icontains=search)|
+            Q(email__icontains=search)|
+            Q(phone__number_icontains=search)
         )
 
     # Pagination part
@@ -85,7 +90,7 @@ def manage_user(request,user_id):
         return Response(serializer.data,status=200)
     
     if request.method == "PUT":
-        serializer = UserManagementSerializer(user, request.data, partial=True, context ={"request":request})
+        serializer = UserManagementSerializer(user, data = request.data, partial=True, context ={"request":request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=200)

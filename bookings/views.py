@@ -97,7 +97,7 @@ def booking_actions(request,booking_id):
         except TurfBooking.DoesNotExist:
             return Response("No booking found under this id",status=404)
         
-        serializer = UpdateBookingSerializer(booking,request.data, partial=True,context={"request":request})
+        serializer = UpdateBookingSerializer(booking,data=request.data, partial=True,context={"request":request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data,status=200)
@@ -256,7 +256,7 @@ def booking_stats(request):
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def bulk_booking(request):
-    serializer = BulkBookingItemSerializer(request.data,many=True,context={'request':request})
+    serializer = BulkBookingItemSerializer(data=request.data,many=True,context={'request':request})
     if serializer.is_valid():
         serializer.save()
         return Response(serializer.data,status=200)
@@ -345,7 +345,7 @@ def verify_booking(request,booking_code):
 # POST /api/bookings/{id}/confirm/
 @api_view(['GET'])
 @permission_classes([IsAuthenticated,IsAdminOrOwner])
-def confirm_booking(request,user_id):
+def confirm_booking(request,id):
     try:
         booking = TurfBooking.objects.get(id=id)
     except TurfBooking.DoesNotExist:

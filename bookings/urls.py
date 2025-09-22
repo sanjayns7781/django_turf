@@ -19,9 +19,9 @@ urlpatterns = [
     path('by-date/<int:date>/',get_booking_by_date),
     path('bookings/available-slots/',get_available_slots),
     path('by-location/<str:location>/',get_booking_locations),
-    path('stats/>',booking_stats),
+    path('stats/',booking_stats),
     path('bulk-create/',bulk_booking),
-    path('bulk-cancel/>',cancel_booking),
+    path('bulk-cancel/',cancel_booking),
     path('advanced-search/',advanced_search),
     path('verify/<str:booking_code>',verify_booking),
     path('<int:id>/confirm/',confirm_booking)
