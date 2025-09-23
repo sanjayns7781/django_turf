@@ -1,4 +1,10 @@
+import logging
+from datetime import datetime
 from django.shortcuts import render
+from django.core.cache import cache
+from django.utils.timezone import now
+from django.db.models import Q,Count
+from django.db.models.functions import TruncMonth
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -9,11 +15,12 @@ from .serializers import(
 from .models import TurfBooking
 from .pagination import BookingPagination
 from .permissions import IsAdmin,IsAdminOrOwner
-from django.db.models import Q,Count
-from django.db.models.functions import TruncMonth
-from datetime import datetime
-from django.utils.timezone import now
 
+
+
+
+
+logger = logging.getLogger('bookings')
 
 # Task 7: Turf Booking CRUD Operations
 @api_view(['POST',"GET"])
@@ -23,6 +30,7 @@ def book_turf(request):
         serializer = BookingSerializer(data=request.data,context={"request":request})
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Turf has been booked by{request.user.username}")
             return Response(serializer.data,status=201)
         return Response(serializer.errors,status=400)
     
@@ -100,6 +108,7 @@ def booking_actions(request,booking_id):
         serializer = UpdateBookingSerializer(booking,data=request.data, partial=True,context={"request":request})
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Turf booking has  been updated by {request.user.username}")
             return Response(serializer.data,status=200)
         return Response(serializer.errors,status=400)
 
@@ -113,6 +122,7 @@ def booking_actions(request,booking_id):
         role = request.user.role.name
         if role in ["ADMIN","OWNER"] or (role == "CUSTOMER" and booking.user == request.user):
             booking.delete()
+            logging.info("booking has been successfully deleted")
             return Response("Has successfully deleted",status=204)
         return Response("Only admins and owner can delete booking")
 
@@ -334,16 +344,25 @@ def advanced_search(request):
 # GET /api/bookings/verify/{booking_code}/
 @api_view(['GET'])
 def verify_booking(request,booking_code):
+    cache_key = f"booking_{booking_code}"
+    booking_data = cache.get(cache_key)
+    if booking_data:
+        return Response(booking_data, status=200)  # ✅ return cached result
+
     try:
         booking = TurfBooking.objects.get(booking_code=booking_code)
     except TurfBooking.DoesNotExist:
         return Response({"error": "There is no booking with this booking code"}, status=404)
     
     serializer = VerifyBookingSerializer(booking)
+    booking_data = serializer.data
+    # Save result in cache for 10 minutes (600s)
+    cache.set(cache_key,booking_data,timeout=600)
+
     return Response(serializer.data,status=200)
 
 # POST /api/bookings/{id}/confirm/
-@api_view(['GET'])
+@api_view(['POST'])
 @permission_classes([IsAuthenticated,IsAdminOrOwner])
 def confirm_booking(request,id):
     try:

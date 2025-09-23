@@ -137,6 +137,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
 
     'EXCEPTION_HANDLER': 'accounts.exceptions.custom_exception_handler'
+    
 }
 
 AUTH_USER_MODEL = 'accounts.User'
@@ -184,4 +185,12 @@ LOGGING = {
         'propagate': False,
         },
     },
+}
+
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
 }

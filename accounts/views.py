@@ -8,15 +8,18 @@ from .models import User, Role
 from .pagination import UserPagination
 from django.db.models import Q
 import logging
+from django_ratelimit.decorators import ratelimit # type: ignore
 
 logger = logging.getLogger('accounts')
 
 @api_view(['POST'])
 @permission_classes([])  # allow anyone
+@ratelimit(key='ip', rate='5/m', block=True)  # 5 requests per minute per IP
 def register(request):
     serializer = RegisterSerializer(data=request.data, context={'request': request})
     if serializer.is_valid():
         user = serializer.save()
+        logger.info(f"User {serializer.validated_data['username']} logged in successfully")
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 

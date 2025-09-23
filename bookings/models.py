@@ -3,7 +3,7 @@ from accounts.models import User
 
 # Create your models here.
 class TurfBooking(models.Model):
-    booking_code = models.CharField(unique=True,max_length=8)
+    booking_code = models.CharField(unique=True,max_length=8,db_index=True)
     turf_name = models.CharField(max_length=150)
     location = models.CharField(max_length=200)
     booking_date = models.DateField()
@@ -22,3 +22,8 @@ class TurfBooking(models.Model):
 
     class Meta:
         db_table = "turf_db"
+    #     indexes = [
+    #     models.Index(fields=['booking_date', 'time_slot']),
+    #     models.Index(fields=['location', 'booking_date']),
+    #     models.Index(fields=['turf_name', 'booking_date', 'time_slot']),
+    # ]
